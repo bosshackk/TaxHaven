@@ -1,37 +1,44 @@
 package com.quad.TaxHaven.controllers;
 
-import com.quad.TaxHaven.domain.plan.Plan;
 import com.quad.TaxHaven.domain.user.Client;
-import com.quad.TaxHaven.repositories.ClientRepository;
-import jakarta.websocket.server.PathParam;
+import com.quad.TaxHaven.services.ClientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("client")
 public class ClientController {
 
     @Autowired
-    ClientRepository clientRepository;
+    ClientService clientService;
 
-    @PostMapping("/saveClient")
-    public ResponseEntity<Object> saveClient(@RequestBody Client client){
-        client = clientRepository.save(client);
-//        client = clientRepository.findById(client.getId());
+    @PostMapping("/create")
+    public ResponseEntity<Object> create(@RequestBody Client client){
+        client = clientService.save(client);
+//        client = clientService.findById(client.getId());
 //        List<Plan> planList =
 //        client.setPlanList();
-        return new ResponseEntity<>(clientRepository.findById(client.getId()), HttpStatus.OK);
+        return new ResponseEntity<>(clientService.findById(client.getId()), HttpStatus.OK);
+//        return new ResponseEntity<>("redirect:/{id}", HttpStatus.OK);
+//        return new ResponseEntity<>(client, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Object> fetchClient(@PathVariable Integer id){
-        return new ResponseEntity<>(clientRepository.findById(id), HttpStatus.OK);
+    public ResponseEntity<Object> fetch(@PathVariable Integer id){
+        return new ResponseEntity<>(clientService.findById(id), HttpStatus.OK);
     }
 
+    @PutMapping("/update")
+    public ResponseEntity<Object> update(@RequestBody Client client){
+        return new ResponseEntity<>(clientService.save(client), HttpStatus.OK);
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<Object> delete(@PathVariable Integer id){
+        clientService.deleteById(id);
+        return new ResponseEntity<>("client deleted successfully with id-"+id, HttpStatus.OK);
+    }
 
 }
