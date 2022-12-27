@@ -2,27 +2,34 @@ package com.quad.TaxHaven.controllers;
 
 import com.quad.TaxHaven.domain.user.Client;
 import com.quad.TaxHaven.services.ClientService;
+import org.apache.commons.beanutils.BeanUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+
 @RestController
 @RequestMapping("client")
 public class ClientController {
 
+    Logger LOGGER = LoggerFactory.getLogger(ClientController.class);
+
     @Autowired
     ClientService clientService;
 
-    @PostMapping("/create")
+    @PostMapping("")
     public ResponseEntity<Object> create(@RequestBody Client client){
         client = clientService.save(client);
-//        client = clientService.findById(client.getId());
-//        List<Plan> planList =
-//        client.setPlanList();
         return new ResponseEntity<>(clientService.findById(client.getId()), HttpStatus.OK);
-//        return new ResponseEntity<>("redirect:/{id}", HttpStatus.OK);
-//        return new ResponseEntity<>(client, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
@@ -30,12 +37,42 @@ public class ClientController {
         return new ResponseEntity<>(clientService.findById(id), HttpStatus.OK);
     }
 
-    @PutMapping("/update")
+    @PutMapping("")
     public ResponseEntity<Object> update(@RequestBody Client client){
-        return new ResponseEntity<>(clientService.save(client), HttpStatus.OK);
+//        Client client1 = clientService.findById(client.getId()).ifPresentOrElse(a-> new Exception("clinet not found", Throwable));
+        Client client1 = clientService.findById(client.getId()).get();
+        Class cls;
+        try {
+            cls = Class.forName ("com.quad.TaxHaven.domain.user.Client");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        List<Field> fields = new ArrayList<>(Arrays.asList(cls.getDeclaredFields()));
+        fields.addAll(Arrays.asList(cls.getSuperclass().getDeclaredFields()));
+        Client finalClient = client1;
+        fields.forEach(attr-> {
+            attr.setAccessible(true);
+            try {
+                if (!Objects.isNull(attr.get(client))) {
+                    LOGGER.info("attr get(client) {}", attr.get(client));
+                    BeanUtils.setProperty(finalClient, attr.getName(), attr.get(client));
+                    LOGGER.info("attr getName {}", attr.getName());
+                    LOGGER.info("finalClient attr value {}", attr.get(finalClient));
+                }
+//            } catch (IllegalAccessException | InvocationTargetException e) {
+//                throw new RuntimeException(e);
+//            }
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException("illegal access {}", e);
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException("invocation target exception {}", e);
+            }
+        });
+//        client1 = finalClient; not neccessary how, and if we remove it, finalClient is showing redundant
+        return new ResponseEntity<>(clientService.save(client1), HttpStatus.OK);
     }
 
-    @DeleteMapping("/delete/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Object> delete(@PathVariable Integer id){
         clientService.deleteById(id);
         return new ResponseEntity<>("client deleted successfully with id-"+id, HttpStatus.OK);
